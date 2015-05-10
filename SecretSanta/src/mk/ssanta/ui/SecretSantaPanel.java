@@ -117,7 +117,7 @@ public class SecretSantaPanel extends JPanel {
 				addSantaButton.setEnabled(false);
 				removeSantaButton.setEnabled(false);
 				shuffleButton.setEnabled(false);
-				ssds.draw();
+				ssds.shuffle();
 				getRecipientButton.setEnabled(true);
 			}
 		});

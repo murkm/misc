@@ -46,7 +46,7 @@ public class SecretSantaDataStoreTest {
 		for (int i=0; i < family.length; i++) {
 			ssds.addFamilyMember(new FamilyMember(family[i]));
 		}
-		ssds.draw();
+		ssds.shuffle();
 	}
 
 	/**

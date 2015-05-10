@@ -96,7 +96,7 @@ public class SecretSantaDataStore {
 	 * 
 	 * Implements modified Fisher-Yates shuffle with exclusion criterion
 	 */
-	public void draw() {
+	public void shuffle() {
 
 		open = false;
 
