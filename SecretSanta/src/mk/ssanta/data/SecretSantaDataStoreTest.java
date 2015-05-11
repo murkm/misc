@@ -7,6 +7,7 @@ import static org.junit.Assert.*;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 
 import org.junit.After;
 import org.junit.AfterClass;
@@ -22,19 +23,6 @@ public class SecretSantaDataStoreTest {
 	
 	SecretSantaDataStore ssds;
 	String[] family;
-	/**
-	 * @throws java.lang.Exception
-	 */
-	@BeforeClass
-	public static void setUpBeforeClass() throws Exception {
-	}
-
-	/**
-	 * @throws java.lang.Exception
-	 */
-	@AfterClass
-	public static void tearDownAfterClass() throws Exception {
-	}
 
 	/**
 	 * @throws java.lang.Exception
@@ -49,12 +37,21 @@ public class SecretSantaDataStoreTest {
 		ssds.shuffle();
 	}
 
+	@After
+    public void tearDown() throws Exception {
+		ssds.dumpResults();
+    }
+	
 	/**
 	 * Test method for {@link mk.ssanta.data.SecretSantaDataStore#addFamilyMember(mk.ssanta.data.FamilyMember)}.
 	 */
 	@Test
 	public void testAddFamilyMember() {
-		assertTrue(ssds.addFamilyMember(new FamilyMember("Jesus")));
+		if (ssds.present("Jesus")) {
+			assertFalse(ssds.addFamilyMember(new FamilyMember("Jesus")));
+		} else {
+			assertTrue(ssds.addFamilyMember(new FamilyMember("Jesus")));
+		}
 		assertFalse(ssds.addFamilyMember(new FamilyMember("Judas")));
 	}
 
@@ -63,7 +60,11 @@ public class SecretSantaDataStoreTest {
 	 */
 	@Test
 	public void testRemoveFamilyMember() {
-		assertFalse(ssds.removeFamilyMember("Jesus"));
+		if (ssds.present("Jesus")) {
+			assertTrue(ssds.removeFamilyMember("Jesus"));
+		} else {
+			assertFalse(ssds.removeFamilyMember("Jesus"));
+		}
 		assertTrue(ssds.removeFamilyMember("Judas"));
 		assertFalse(ssds.removeFamilyMember("Judas"));
 	}
@@ -84,9 +85,12 @@ public class SecretSantaDataStoreTest {
 	 *    1. Everybody gets to be a SecretSanta
 	 *    2. Nobody gets more than one SecretSanta
 	 *    3. One can not be his own SecretSanta
+	 *    
+	 *    One can get the same santa or be santa for the same person once every 3 terms
 	 */
+	
 	@Test
-	public void testDraw() {
+	public void testShuffle() {
 		
 		ArrayList<String> recipients = new ArrayList<String>();
 		
@@ -95,6 +99,11 @@ public class SecretSantaDataStoreTest {
 			assertNotNull(fm.getRecipient());
 			assertFalse(fm.getName().equals(fm.getRecipient()));
 			recipients.add(fm.getRecipient());
+			List<String> constraints = fm.getConstraints();
+			for (String name: constraints) {
+				String recipient = fm.getRecipient();
+				assertFalse(name.equals(recipient));
+			}
 		}
 		
 		HashSet<String> uniqueRecipients = new HashSet<String>(recipients);

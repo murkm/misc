@@ -26,21 +26,114 @@
 
 package mk.ssanta.data;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FilenameFilter;
+import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
 import java.util.Random;
+import java.util.Scanner;
 
 /*
- * SecretSantaDataStore main class that implementsin memory datat store for 
- * the Secret Santa
+ * SecretSantaDataStore main class that implementing memory data 
+ * store for the Secret Santa 
+ * 
+ * Historical data is saved in files so they could be used in 
+ * subsequent SecretSanta gigs to make sure no one gets the same person 
+ * assigned more than once every three years
  * 
  */
 public class SecretSantaDataStore {
 
-	Random rand = new Random(); 
-	private ArrayList<FamilyMember> extendedFamily = new ArrayList<FamilyMember>();
-	private boolean open = true;
+	private Random rand; 
+	private ArrayList<FamilyMember> extendedFamily;
+	private boolean open;
+	private String basedir;
+
+	public SecretSantaDataStore() {
+		rand = new Random();
+		extendedFamily = new ArrayList<FamilyMember>();
+		open = true;
+		basedir = ".";
+		
+		findAndLoadPastData();
+	}
+	
+	private void findAndLoadPastData() {
+		File cwd = new File(basedir);
+		
+		String[] files = cwd.list(new FilenameFilter() {
+
+			@Override
+			public boolean accept(File dir, String name) {
+				return name.endsWith(".txt") && name.startsWith("ssdump_");
+			}});
+		
+		Arrays.sort(files);
+
+		if (files.length > 0) {
+			String mostRecentFile = files[files.length-1];
+			//System.out.println(mostRecentFile);
+			Scanner sc;
+			try {
+				sc = new Scanner(new File(mostRecentFile));
+				while (sc.hasNextLine()) {
+					String line = sc.nextLine();
+					String[] name = line.split(": ");
+					if (name.length == 2) {
+						FamilyMember fm = new FamilyMember(name[0]);
+						fm.addConstraint(name[0]);
+						fm.addConstraint(name[1]);
+						addFamilyMember(fm);
+					}
+				}
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		
+		if (files.length > 1) {
+			String mostRecentFile = files[files.length-2];
+			//System.out.println(mostRecentFile);
+			Scanner sc;
+			try {
+				sc = new Scanner(new File(mostRecentFile));
+				while (sc.hasNextLine()) {
+					String line = sc.nextLine();
+					String[] name = line.split(": ");
+					if ((name.length == 2) && 
+							(name[1] != null) && 
+							(! name[1].trim().equals("null"))) {
+						int index = extendedFamily.indexOf(new FamilyMember(name[0]));
+						if (index >=0) {
+							extendedFamily.get(index).addConstraint(name[1]);
+						}
+					}
+				}
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+
+		// dumpData();
+	}
+
+	private void dumpData() {
+		for (FamilyMember fm : extendedFamily) {
+			System.out.println(fm);
+			System.out.println(fm.getConstraints());
+		}
+	}
 
 	public boolean isOpen() {
 		return open;
@@ -90,40 +183,62 @@ public class SecretSantaDataStore {
 	}
 
 	/*
-	 * Generates random SecretSanta assignments making sure that no one gets
-	 * assigned two SecretSantas no one is his/her own SecretSanta everybody is
-	 * a SecretSanta
+	 * Generates random SecretSanta assignments making sure that 
+	 * no one gets assigned two SecretSantas 
+	 * no one is his/her own SecretSanta 
+	 * everybody is a SecretSanta
 	 * 
-	 * Implements modified Fisher-Yates shuffle with exclusion criterion
+	 * This shuffle takes into account costraints that added to each Family Member
 	 */
+	
 	public void shuffle() {
+		int count = 1;
+		while (! shufflePass()) {
+			count = count + 1; // not using count++ to avoid eclipse warning 
+		}
+	}
+	
+	public boolean shufflePass() {
 
 		open = false;
-
-		int[] arr = new int[extendedFamily.size()];
-		for (int i = 0; i < arr.length; i++)
-			arr[i] = i;
-
-		for (int i = 0; i < arr.length - 1; i++) {
-			if (arr[i] == i) { // have to shuffle
-				int j = randInt(i + 1, arr.length - 1);
-				int temp = arr[i];
-				arr[i] = arr[j];
-				arr[j] = temp;
+		
+		List<String> assigneePool = getNameList();
+		
+		for (FamilyMember fm: extendedFamily) {
+			List<String> candidates = getAssigneesSansConstraints(assigneePool, fm);
+			if (!candidates.isEmpty()) {
+				int randomIndex = randInt(0,candidates.size()-1);
+				fm.setRecipient(candidates.get(randomIndex));
+				assigneePool.remove(candidates.get(randomIndex));
+			} else {
+				// This signifies that proper solution was not found 
+				return false;
 			}
 		}
+		
+		return true;
+	}
 
-		if (arr[arr.length - 1] == arr.length - 1) {
-			int j = randInt(0, arr.length - 2);
-			int temp = arr[j];
-			arr[j] = arr[arr.length - 1];
-			arr[arr.length - 1] = temp;
+	private List<String> getAssigneesSansConstraints(List<String> assigneePool,
+			FamilyMember fm) {
+		
+		List<String> tmp = new ArrayList<String>(assigneePool);
+		
+		List<String> constraints = fm.getConstraints();
+		
+		for (String name: constraints) {
+			tmp.remove(name);
 		}
+		
+		return tmp;
+	}
 
-		for (int i = 0; i < extendedFamily.size(); i++) {
-			extendedFamily.get(i).setRecipient(
-					extendedFamily.get(arr[i]).getName());
+	private List<String> getNameList() {
+		List<String> nameList = new ArrayList<String>();
+		for (FamilyMember fm: extendedFamily) {
+			nameList.add(fm.getName());
 		}
+		return nameList;
 	}
 
 	public String getRecipient(String name) {
@@ -161,5 +276,24 @@ public class SecretSantaDataStore {
 			santas[i] = extendedFamily.get(i).getName();
 		}
 		return santas;
+	}
+
+	public void dumpResults() {
+		if (! isOpen()) {
+			DateFormat df = new SimpleDateFormat("yyyyMMdd.HHmmss");
+			String dumpFileName = "ssdump_" + df.format(new Date()) + ".txt";
+			try {
+				FileOutputStream fos = new FileOutputStream(dumpFileName);
+				dumpResults(fos);
+				fos.flush();
+				fos.close();
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
 	}
 }

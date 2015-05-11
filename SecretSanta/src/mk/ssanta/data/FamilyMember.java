@@ -1,5 +1,8 @@
 package mk.ssanta.data;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /*
  *  Encapsulates SecretSanta - recipient relationship
  */
@@ -7,10 +10,12 @@ class FamilyMember {
 
 	private String name;
 	private String recipient;
+	private List<String> constraints;
 
 	public FamilyMember(String name) {
 		this.name = name;
 		this.recipient = null;
+		constraints = new ArrayList<String>();
 	}
 
 	public String getName() {
@@ -23,6 +28,10 @@ class FamilyMember {
 
 	public void setRecipient(String name) {
 		this.recipient = name;
+	}
+
+	public List<String> getConstraints() {
+		return constraints;
 	}
 
 	public boolean equals(Object obj) {
@@ -47,6 +56,10 @@ class FamilyMember {
 
 	public String toString() {
 		return name + ": " + recipient;
+	}
+
+	public void addConstraint(String string) {
+		constraints.add(string);		
 	}
 }
 

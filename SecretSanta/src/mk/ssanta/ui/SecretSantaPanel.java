@@ -88,23 +88,7 @@ public class SecretSantaPanel extends JPanel {
 		JButton saveAndExitButton = new JButton("Save & Exit");
 		saveAndExitButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
-				if (! ssds.isOpen()) {
-					DateFormat df = new SimpleDateFormat("yyyyMMdd.HHmmss");
-					String dumpFileName = "ssdump_" + df.format(new Date()) + ".txt";
-					try {
-						FileOutputStream fos = new FileOutputStream(dumpFileName);
-						ssds.dumpResults(fos);
-						fos.flush();
-						fos.close();
-					} catch (FileNotFoundException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					} catch (IOException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-				}
-				
+				ssds.dumpResults();
 				System.exit(0);
 			}
 		});
@@ -139,7 +123,7 @@ public class SecretSantaPanel extends JPanel {
 		statusLabel = new JLabel("");
 		
 		removeSantaButton = new JButton("Remove Santa");
-		removeSantaButton.setEnabled(false);
+		removeSantaButton.setEnabled(ssds.size() > 0);
 		removeSantaButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				if (ssds.isOpen() && (santas.getSelectedIndex() >= 0)) {
@@ -202,6 +186,7 @@ public class SecretSantaPanel extends JPanel {
 		santas.setLayoutOrientation(JList.VERTICAL);
 		setLayout(groupLayout);
 		setPreferredSize(new Dimension(450, 300));
+		updateSantasList();
 	}
 
 	protected void updateSantasList() {
